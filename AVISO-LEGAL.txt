@@ -1,0 +1,19 @@
+VestibuLab · Laboratorio virtual de VPPB
+© 2026 Dr. Antonio Aldana Vargas · AudioMedical MX. Todos los derechos reservados.
+
+Esta aplicación, incluidos su código fuente, diseño, interfaz, textos, ilustraciones,
+modelos, imágenes, logotipos y demás contenidos, es obra de Dr. Antonio Aldana Vargas
+y está protegida por la Ley Federal del Derecho de Autor (México) y los tratados
+internacionales aplicables.
+
+Queda prohibida su reproducción, distribución, comunicación pública, transformación o
+modificación, total o parcial, por cualquier medio, sin autorización previa y por escrito
+del autor. "AudioMedical MX" y su logotipo son signos distintivos de su titular.
+
+Uso: herramienta educativa y de apoyo docente. Los resultados son de un modelo
+esquemático y no sustituyen la exploración ni el juicio clínico.
+
+Componentes de terceros: three.js (licencia MIT, © three.js authors), incluido en
+three.min.js y OrbitControls.js, se distribuye bajo su propia licencia.
+
+Contacto para permisos: AudioMedical MX.

@@ -1,0 +1,37 @@
+VestibuLab · AudioMedical MX — app instalable (PWA)
+====================================================
+
+Contenido de la carpeta
+- index.html ............ la app completa (con logotipo y estilos)
+- three.min.js, OrbitControls.js ... motor 3D incluido (funciona sin internet)
+- manifest.webmanifest .. nombre, colores e íconos de la app
+- sw.js ................. guarda la app en el teléfono para uso sin conexión
+- icons/ ................ íconos (pabellón dorado sobre azul AudioMedical)
+
+PASO 1 · Publicarla en internet (una sola vez, gratis)
+Una PWA necesita estar en una dirección https. Opciones sencillas:
+  a) Netlify: entra a app.netlify.com/drop, crea una cuenta y arrastra la carpeta "vestibulab".
+     Obtienes una dirección tipo https://vestibulab.netlify.app
+  b) GitHub Pages: crea un repositorio, sube el contenido de la carpeta y activa Pages.
+  c) Si tienes la página de AudioMedical MX con hosting propio, súbela a una subcarpeta,
+     por ejemplo https://tudominio.com/vestibulab/
+
+PASO 2 · Instalarla en el celular
+- Android (Chrome): abre la dirección y toca "Instalar app" o menú ⋮ → "Agregar a la pantalla principal".
+- iPhone (Safari): botón Compartir → "Agregar a pantalla de inicio".
+La app queda con su ícono, se abre a pantalla completa y funciona sin conexión
+después de la primera apertura.
+
+PASO 3 (opcional) · Publicarla en Google Play
+1. Entra a www.pwabuilder.com, pega la dirección del paso 1 y elige "Android".
+2. PWABuilder genera el paquete (.aab) firmado y las instrucciones para vincular tu dominio.
+3. Súbelo a Google Play Console (cuenta de desarrollador con pago único).
+Para la App Store de Apple se requiere la cuenta de Apple Developer (pago anual) y un
+empaquetado adicional; PWABuilder también ofrece esa opción.
+
+Actualizaciones
+Si cambias index.html, sube la nueva versión y cambia en sw.js la línea
+  const CACHE='vestibulab-v1';  →  'vestibulab-v2'
+para que los teléfonos descarguen la versión nueva.
+
+Diseñado por Dr. Antonio Aldana Vargas · AudioMedical MX
