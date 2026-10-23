@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Panel de registros · VestibuLab</title>
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<style>
+:root{--bg:#F3F6FB;--panel:#FFFFFF;--ink:#12233D;--muted:#5A6A80;--rule:#D8E0EC;--brand:#0A509C;--gold:#D4951A;--gold2:#F1DD74;--bad:#B3261E;--ok:#2E7D4F;color-scheme:light}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#09131F;--panel:#0F1D30;--ink:#E9EFF8;--muted:#98A8BD;--rule:#22354F;--brand:#78AEEE;--gold:#E8B53E;--gold2:#F6E58C;--bad:#F2867D;--ok:#7BCF9C;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#09131F;--panel:#0F1D30;--ink:#E9EFF8;--muted:#98A8BD;--rule:#22354F;--brand:#78AEEE;--gold:#E8B53E;--gold2:#F6E58C;--bad:#F2867D;--ok:#7BCF9C;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1200px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:2px solid var(--gold);padding-bottom:10px;margin-bottom:16px}
+h1{margin:0;font-size:22px;color:var(--brand);font-weight:600}h1 b{color:var(--gold)}
+.who{margin-left:auto;font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{font:inherit;font-size:14px;font-weight:600;border:1px solid var(--rule);background:var(--panel);color:var(--ink);border-radius:8px;padding:8px 14px;cursor:pointer;min-height:40px}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:var(--panel)}
+.btn.sm{font-size:12.5px;padding:5px 10px;min-height:32px}
+.btn.danger{color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:default}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:16px}
+.login{max-width:420px;margin:60px auto;text-align:center;display:grid;gap:12px}
+.login p{margin:0;color:var(--muted)}
+.msg{font-size:13.5px;color:var(--bad);font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:10px 12px}
+.kpi span{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.kpi b{font-size:26px;font-variant-numeric:tabular-nums}
+.dist{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-bottom:14px}
+.dist h3{margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--brand)}
+.bar{display:grid;grid-template-columns:minmax(0,1fr) 110px 30px;gap:6px;align-items:center;font-size:13px;margin:3px 0}
+.bar .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .b{display:block}.bar i{display:block;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--brand),var(--gold))}
+.bar .n{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.tools input[type=search],.tools select{font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--rule);border-radius:8px;background:var(--panel);color:var(--ink);min-height:40px}
+.tools input[type=search]{flex:1 1 220px}
+.tools input[type=checkbox]{width:18px;height:18px}
+.tools label{display:flex;gap:6px;align-items:center;font-size:13px}
+.tablewrap{overflow-x:auto;border:1px solid var(--rule);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top;white-space:nowrap}
+th{position:sticky;top:0;background:var(--panel);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+td.wrap{white-space:normal;min-width:160px}
+tr.re td{color:var(--muted)}
+.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid var(--rule);color:var(--muted)}
+.count{font-size:13px;color:var(--muted);margin:8px 2px}
+footer{margin-top:24px;font-size:12px;color:var(--muted);text-align:center}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+<header><h1>Vestibu<b>Lab</b> · Panel de registros</h1><div class="who" id="who" hidden><span id="whoTxt"></span><button class="btn sm" id="outBtn">Salir</button></div></header>
+
+<section class="card login" id="login">
+  <h2 style="margin:0">Acceso privado</h2>
+  <p>Este panel muestra los registros de usuarios de VestibuLab. Solo la cuenta autorizada puede ver los datos.</p>
+  <button class="btn primary" id="inBtn">Entrar con Google</button>
+  <div class="msg" id="loginMsg" role="alert"></div>
+</section>
+
+<section id="app" hidden>
+  <div class="kpis">
+    <div class="kpi"><span>Registros</span><b id="kTotal">0</b></div>
+    <div class="kpi"><span>Usuarios únicos (correo)</span><b id="kUniq">0</b></div>
+    <div class="kpi"><span>Últimos 7 días</span><b id="k7">0</b></div>
+    <div class="kpi"><span>Aceptan novedades</span><b id="kNews">0</b></div>
+  </div>
+  <div class="dist">
+    <div class="card"><h3>Profesión</h3><div id="dProf"></div></div>
+    <div class="card"><h3>País</h3><div id="dPais"></div></div>
+    <div class="card"><h3>Uso principal</h3><div id="dUso"></div></div>
+  </div>
+  <div class="tools">
+    <input id="q" type="search" placeholder="Buscar por nombre, correo, centro…" aria-label="Buscar">
+    <select id="fProf" aria-label="Filtrar por profesión"><option value="">Todas las profesiones</option></select>
+    <select id="fPais" aria-label="Filtrar por país"><option value="">Todos los países</option></select>
+    <label><input type="checkbox" id="fRe"> Ocultar reingresos</label>
+    <button class="btn" id="reBtn">Actualizar</button>
+    <button class="btn primary" id="xlsBtn">Descargar Excel</button>
+  </div>
+  <div class="count" id="count"></div>
+  <div class="tablewrap"><table><thead><tr><th>Fecha</th><th>Nombre</th><th>Apellidos</th><th>Correo</th><th>País</th><th>Profesión</th><th>Centro</th><th>Uso</th><th>Novedades</th><th>Plataforma</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>
+  <div class="msg" id="appMsg" role="alert"></div>
+</section>
+<footer>VestibuLab · AudioMedical MX · Datos personales protegidos conforme al aviso de privacidad.</footer>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script type="module">
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import {getAuth,GoogleAuthProvider,signInWithPopup,signInWithRedirect,getRedirectResult,onAuthStateChanged,signOut} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import {getFirestore,collection,getDocs,deleteDoc,doc} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+const ADMIN='dr.aldanavargas@gmail.com';
+const app=initializeApp({apiKey:'AIzaSyBbpjf7LXUJeTfkIUkR70jrE6Sx3mUA5L0',authDomain:'vestibulab.firebaseapp.com',projectId:'vestibulab',appId:'1:168324015998:web:d13d2177e26cce02cc352f'});
+const auth=getAuth(app),db=getFirestore(app);auth.languageCode='es';
+const $=id=>document.getElementById(id);
+const RE='(reingreso)';
+let rows=[];
+
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=d=>d?d.toLocaleString('es-MX',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+
+$('inBtn').addEventListener('click',async()=>{
+  $('loginMsg').textContent='';const pr=new GoogleAuthProvider();pr.setCustomParameters({prompt:'select_account'});
+  try{await signInWithPopup(auth,pr)}catch(e){
+    if(/popup-blocked|operation-not-supported|popup-closed-by-browser/.test(e.code||''))return signInWithRedirect(auth,pr);
+    if(e.code==='auth/unauthorized-domain')$('loginMsg').textContent='Falta autorizar este dominio en Firebase: Authentication → Configuración → Dominios autorizados → agrega audiomedicalmx.github.io';
+    else if(e.code==='auth/operation-not-allowed'||e.code==='auth/configuration-not-found')$('loginMsg').textContent='Activa el acceso con Google en Firebase: Authentication → Método de acceso → Google.';
+    else if(e.code!=='auth/popup-closed-by-user'&&e.code!=='auth/cancelled-popup-request')$('loginMsg').textContent='No se pudo iniciar sesión ('+(e.code||e.message)+').';
+  }
+});
+getRedirectResult(auth).catch(e=>{$('loginMsg').textContent='No se pudo iniciar sesión ('+(e.code||e.message)+').'});
+$('outBtn').addEventListener('click',()=>signOut(auth));
+
+onAuthStateChanged(auth,async u=>{
+  $('who').hidden=!u;$('login').hidden=!!u;$('app').hidden=true;
+  if(!u)return;
+  $('whoTxt').textContent=u.email;
+  if((u.email||'').toLowerCase()!==ADMIN){$('login').hidden=false;$('loginMsg').textContent='La cuenta '+u.email+' no tiene acceso a este panel.';return}
+  $('app').hidden=false;load();
+});
+
+async function load(){
+  $('appMsg').textContent='';$('count').textContent='Cargando…';
+  try{const snap=await getDocs(collection(db,'registros'));
+    rows=snap.docs.map(d=>{const x=d.data();return {id:d.id,...x,fecha:x.fecha&&x.fecha.toDate?x.fecha.toDate():null}}).sort((a,b)=>(b.fecha||0)-(a.fecha||0));
+    fillFilters();render();
+  }catch(e){$('count').textContent='';$('appMsg').textContent=e.code==='permission-denied'?'Firebase negó la lectura: falta publicar las reglas nuevas (con permiso de lectura para '+ADMIN+').':'Error al cargar: '+(e.code||e.message)}
+}
+$('reBtn').addEventListener('click',load);
+
+function fillFilters(){
+  const opt=(id,key,label)=>{const sel=$(id),cur=sel.value,vals=[...new Set(rows.map(r=>r[key]).filter(v=>v&&v!==RE))].sort((a,b)=>a.localeCompare(b,'es'));
+    sel.innerHTML=`<option value="">${label}</option>`+vals.map(v=>`<option${v===cur?' selected':''}>${esc(v)}</option>`).join('')};
+  opt('fProf','profesion','Todas las profesiones');opt('fPais','pais','Todos los países');
+}
+function filtered(){
+  const q=$('q').value.trim().toLowerCase(),fp=$('fProf').value,fc=$('fPais').value,hr=$('fRe').checked;
+  return rows.filter(r=>(!hr||r.profesion!==RE)&&(!fp||r.profesion===fp)&&(!fc||r.pais===fc)&&(!q||[r.nombre,r.apellidos,r.correo,r.centro,r.profesion,r.pais,r.uso].join(' ').toLowerCase().includes(q)));
+}
+function dist(el,key){
+  const full=rows.filter(r=>r[key]&&r[key]!==RE),c={};
+  // una persona cuenta una vez (por correo)
+  const seen=new Set();full.forEach(r=>{const k=(r.correo||r.id)+'|'+key;if(seen.has(k))return;seen.add(k);const v=r[key].replace(/^(Otra|Otro): .*/,'$1');c[v]=(c[v]||0)+1});
+  const arr=Object.entries(c).sort((a,b)=>b[1]-a[1]),mx=arr.length?arr[0][1]:1;
+  $(el).innerHTML=arr.length?arr.slice(0,8).map(([k,n])=>`<div class="bar"><span class="t" title="${esc(k)}">${esc(k)}</span><span class="b"><i style="width:${Math.max(4,n/mx*100)}%"></i></span><span class="n">${n}</span></div>`).join(''):'<div class="count">Sin datos todavía.</div>';
+}
+function render(){
+  const now=Date.now(),uniq=new Set(rows.map(r=>(r.correo||'').toLowerCase()));
+  $('kTotal').textContent=rows.length;$('kUniq').textContent=uniq.size;
+  $('k7').textContent=rows.filter(r=>r.fecha&&now-r.fecha<7*864e5).length;
+  $('kNews').textContent=new Set(rows.filter(r=>r.novedades).map(r=>(r.correo||'').toLowerCase())).size;
+  dist('dProf','profesion');dist('dPais','pais');dist('dUso','uso');
+  const f=filtered();
+  $('count').textContent=`${f.length} de ${rows.length} registros`;
+  $('tb').innerHTML=f.map(r=>{const re=r.profesion===RE;return `<tr class="${re?'re':''}"><td>${fmt(r.fecha)}</td><td>${esc(r.nombre)}</td><td>${re?'<span class="tag">reingreso</span>':esc(r.apellidos)}</td><td><a href="mailto:${esc(r.correo)}">${esc(r.correo)}</a></td><td>${re?'':esc(r.pais)}</td><td class="wrap">${re?'':esc(r.profesion)}</td><td class="wrap">${re?'':esc(r.centro)}</td><td>${re?'':esc(r.uso)}</td><td>${r.novedades?'Sí':'No'}</td><td>${esc(r.plataforma)}</td><td><button class="btn sm danger" data-del="${esc(r.id)}" title="Eliminar este registro (derecho de cancelación)">Eliminar</button></td></tr>`}).join('');
+}
+['q','fProf','fPais','fRe'].forEach(id=>$(id).addEventListener(id==='q'?'input':'change',render));
+
+$('tb').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-del]');if(!b)return;const r=rows.find(x=>x.id===b.dataset.del);
+  if(!confirm(`¿Eliminar definitivamente el registro de ${r.nombre} (${r.correo})?`))return;
+  b.disabled=true;try{await deleteDoc(doc(db,'registros',r.id));rows=rows.filter(x=>x.id!==r.id);fillFilters();render();}catch(err){b.disabled=false;$('appMsg').textContent='No se pudo eliminar: '+(err.code||err.message)}
+});
+
+$('xlsBtn').addEventListener('click',()=>{
+  const f=filtered(),data=f.map(r=>({Fecha:r.fecha||'',Nombre:r.nombre,Apellidos:r.apellidos,Correo:r.correo,'País':r.pais,'Profesión':r.profesion,Centro:r.centro,'Uso principal':r.uso,'Acepta novedades':r.novedades?'Sí':'No',Plataforma:r.plataforma,'Versión':r.version}));
+  const ws=XLSX.utils.json_to_sheet(data,{cellDates:true});ws['!cols']=[{wch:18},{wch:18},{wch:20},{wch:30},{wch:14},{wch:30},{wch:30},{wch:18},{wch:10},{wch:10},{wch:8}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Registros');
+  XLSX.writeFile(wb,`VestibuLab-registros-${new Date().toISOString().slice(0,10)}.xlsx`);
+});
+</script>
+</body>
+</html>
