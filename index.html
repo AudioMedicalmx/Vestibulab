@@ -127,6 +127,13 @@ body.adv #labStage .step{top:calc(10px + env(safe-area-inset-top,0px))}
 .mspd b{font-family:var(--mono);font-size:12.5px;min-width:3.4em;text-align:center;color:var(--ink)}
 body.adv .mspd{display:none}
 .advexit{margin-left:0;background:linear-gradient(90deg,var(--gold),var(--gold2));color:#3A2A00;border-color:var(--gold)}
+/* celular y tableta en vertical, controles plegados: «Salir» va a la esquina inferior derecha, junto a Ejecutar/Pausa/Siguiente, y se ahorra un renglón */
+@media (max-width:999px) and (min-height:521px){
+ body.adv .advbar.fold{position:fixed}
+ body.adv .advbar.fold #advExit{position:absolute;right:max(12px,env(safe-area-inset-right,0px));bottom:calc(8px + env(safe-area-inset-bottom,0px));margin:0}
+ body.adv .advbar.fold .advctl{padding-right:92px}
+}
+@media (max-width:399px) and (min-height:521px){body.adv .advbar.fold #advExit span{display:none}body.adv .advbar.fold #advExit{padding-left:10px;padding-right:10px}body.adv .advbar.fold .advctl{padding-right:48px;gap:5px}}
 .advbar .advctl #advBtn{display:none}
 .advbar.fold .advctl>:not(#run):not(#pause):not(#skip){display:none}
 .advctl .canals{flex:1 1 100%;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:4px}
@@ -669,7 +676,7 @@ setTimeout(function(){window.vlSplash(100,true)},15000);})();</script>
       <div class="key"><span><i style="background:var(--oto)"></i>otoconias</span><span><i style="background:var(--freed)"></i>liberadas al utrículo</span><span><i style="background:var(--right)"></i>derecho</span><span><i style="background:var(--left)"></i>izquierdo</span><span><i style="background:var(--fast)"></i>polo superior del iris</span><span><i style="background:#EAF4FA;border:1px solid #9fb0b6"></i>cúpula</span><span><i style="background:#D98C8C"></i>crestas y máculas</span><span><i style="background:#B9A27A"></i>cóclea</span></div>
     </div>
     <div class="advbar" id="advBar" hidden>
-      <div class="advny"><span class="lbl">Nistagmo</span> <b id="advNy">Sin nistagmo</b> <span class="advv" id="advV"></span><span class="advspd" role="group" aria-label="Velocidad"><button class="advfold" id="spdDown" aria-label="Más lento">−</button><b id="spdVal">1×</b><button class="advfold" id="spdUp" aria-label="Más rápido">+ Velocidad</button></span><button class="advfold" id="advFold" aria-expanded="true">▾ Ocultar controles</button><button class="advfold advexit" id="advExit">✕ Salir</button></div>
+      <div class="advny"><span class="lbl">Nistagmo</span> <b id="advNy">Sin nistagmo</b> <span class="advv" id="advV"></span><span class="advspd" role="group" aria-label="Velocidad"><button class="advfold" id="spdDown" aria-label="Más lento">−</button><b id="spdVal">1×</b><button class="advfold" id="spdUp" aria-label="Más rápido">+ Velocidad</button></span><button class="advfold" id="advFold" aria-expanded="true">▾ Ocultar controles</button><button class="advfold advexit" id="advExit" aria-label="Salir de pantalla completa" title="Salir de pantalla completa">✕ Salir</button></div>
       <div class="advctl" id="advCtl"></div>
     </div>
     <div class="panel trainp" id="trainPanel" hidden></div>
