@@ -50,7 +50,7 @@ tr.re td{color:var(--muted)}
 .count{font-size:13px;color:var(--muted);margin:8px 2px}
 footer{margin-top:24px;font-size:12px;color:var(--muted);text-align:center}
 [hidden]{display:none!important}
-.sec{margin:22px 0 10px;color:var(--brand);font-size:18px}.st{font-weight:700}.st.pro{color:var(--gold)}.st.trial{color:var(--ok)}.st.free{color:var(--muted)}
+.sec{margin:22px 0 10px;color:var(--brand);font-size:18px}.st{font-weight:700}.st.pro{color:var(--gold)}.st.trial{color:var(--ok)}.st.free{color:var(--muted)}.st.refund{color:var(--bad)}
 </style>
 </head>
 <body>
@@ -72,7 +72,7 @@ footer{margin-top:24px;font-size:12px;color:var(--muted);text-align:center}
     <div class="kpi"><span>VestibuLab Pro</span><b id="aPro">0</b></div>
     <div class="kpi"><span>Ingresos web (Stripe)</span><b id="aMxn">$0</b></div>
   </div>
-  <div class="tools"><input id="qa" type="search" placeholder="Buscar cuenta por correo…" aria-label="Buscar cuenta"><select id="fa" aria-label="Filtrar por estado"><option value="">Todos los estados</option><option value="pro">Pro</option><option value="trial">En prueba</option><option value="free">Prueba terminada</option></select></div>
+  <div class="tools"><input id="qa" type="search" placeholder="Buscar cuenta por correo…" aria-label="Buscar cuenta"><select id="fa" aria-label="Filtrar por estado"><option value="">Todos los estados</option><option value="pro">Pro</option><option value="trial">En prueba</option><option value="free">Prueba terminada</option><option value="refund">Reembolsado</option></select></div>
   <div class="count" id="acount"></div>
   <div class="tablewrap"><table><thead><tr><th>Correo</th><th>Nombre (registro)</th><th>Alta de la cuenta</th><th>Estado</th><th>Fin de la prueba</th><th>Pro desde</th><th>Origen del pago</th><th>Monto</th></tr></thead><tbody id="tba"></tbody></table></div>
   <h3 class="sec">Pagos recibidos (Stripe)</h3>
@@ -155,16 +155,16 @@ async function load(){
 $('reBtn').addEventListener('click',load);
 const money=(c,cur)=>c==null?'—':'$'+(c/100).toLocaleString('es-MX',{minimumFractionDigits:2})+' '+String(cur||'mxn').toUpperCase();
 const ms=t=>t?new Date(t):null;
-function stOf(a){if(a.pro)return 'pro';return (a.trialEnd||0)>Date.now()?'trial':'free'}
+function stOf(a){if(a.pro)return 'pro';if(a.proSource==='reembolsado')return 'refund';return (a.trialEnd||0)>Date.now()?'trial':'free'}
 function renderAccts(){
   const name={};rows.forEach(r=>{const k=(r.correo||'').toLowerCase();if(k&&!name[k]&&r.apellidos!==RE)name[k]=(r.nombre||'')+' '+(r.apellidos||'')});
   $('aTotal').textContent=accts.length;$('aTrial').textContent=accts.filter(a=>stOf(a)==='trial').length;$('aPro').textContent=accts.filter(a=>a.pro).length;
-  const tot=pays.reduce((s,p)=>s+(p.amount||0),0);$('aMxn').textContent='$'+(tot/100).toLocaleString('es-MX',{minimumFractionDigits:2});
-  const q=$('qa').value.trim().toLowerCase(),fa=$('fa').value,L={pro:'VestibuLab Pro',trial:'En prueba',free:'Prueba terminada'};
+  const tot=pays.reduce((s,p)=>s+(p.refunded?0:(p.amount||0)),0);$('aMxn').textContent='$'+(tot/100).toLocaleString('es-MX',{minimumFractionDigits:2});
+  const q=$('qa').value.trim().toLowerCase(),fa=$('fa').value,L={pro:'VestibuLab Pro',trial:'En prueba',free:'Prueba terminada',refund:'Reembolsado (sin Pro)'};
   const f=accts.filter(a=>(!q||(a.email||'').includes(q))&&(!fa||stOf(a)===fa));
   $('acount').textContent=`${f.length} de ${accts.length} cuentas`;
-  $('tba').innerHTML=f.map(a=>{const st=stOf(a),left=Math.ceil(((a.trialEnd||0)-Date.now())/864e5);return `<tr><td><a href="mailto:${esc(a.email)}">${esc(a.email)}</a></td><td>${esc(name[(a.email||'').toLowerCase()]||'—')}</td><td>${fmt(ms(a.created))}</td><td class="st ${st}">${L[st]}${st==='trial'?' · '+left+' d':''}</td><td>${fmt(ms(a.trialEnd))}</td><td>${a.pro?fmt(ms(a.proAt)):'—'}</td><td>${a.pro?esc(a.proSource==='stripe'?'Stripe (web)':(a.proSource||'—')):'—'}</td><td>${a.pro?money(a.amount,a.currency):'—'}</td></tr>`}).join('');
-  $('tbp').innerHTML=pays.length?pays.map(p=>`<tr><td>${fmt(ms(p.at))}</td><td>${esc(p.email)}</td><td>${money(p.amount,p.currency)}</td><td class="wrap">${esc(p.id)}</td></tr>`).join(''):'<tr><td colspan="4">Sin pagos todavía.</td></tr>';
+  $('tba').innerHTML=f.map(a=>{const st=stOf(a),left=Math.ceil(((a.trialEnd||0)-Date.now())/864e5);return `<tr><td><a href="mailto:${esc(a.email)}">${esc(a.email)}</a></td><td>${esc(name[(a.email||'').toLowerCase()]||'—')}</td><td>${fmt(ms(a.created))}</td><td class="st ${st}">${L[st]}${st==='trial'?' · '+left+' d':''}</td><td>${fmt(ms(a.trialEnd))}</td><td>${a.pro?fmt(ms(a.proAt)):'—'}</td><td>${a.pro?esc(a.proSource==='stripe'?'Stripe (web)':a.proSource==='stripe-promo'?'Código promocional 100 %':(a.proSource||'—')):'—'}</td><td>${a.pro?money(a.amount,a.currency):'—'}</td></tr>`}).join('');
+  $('tbp').innerHTML=pays.length?pays.map(p=>`<tr><td>${fmt(ms(p.at))}</td><td>${esc(p.email)}</td><td>${money(p.amount,p.currency)}${p.refunded?' · <b style="color:var(--bad)">reembolsado</b>':''}${p.promo?' · código 100 %':''}</td><td class="wrap">${esc(p.id)}</td></tr>`).join(''):'<tr><td colspan="4">Sin pagos todavía.</td></tr>';
 }
 ['qa','fa'].forEach(id=>$(id).addEventListener(id==='qa'?'input':'change',renderAccts));
 
@@ -206,7 +206,7 @@ $('xlsBtn').addEventListener('click',()=>{
   const f=filtered(),data=f.map(r=>({Fecha:r.fecha||'',Nombre:r.nombre,Apellidos:r.apellidos,Correo:r.correo,'País':r.pais,'Profesión':r.profesion,Centro:r.centro,'Uso principal':r.uso,'Acepta novedades':r.novedades?'Sí':'No',Plataforma:r.plataforma,'Versión':r.version}));
   const ws=XLSX.utils.json_to_sheet(data,{cellDates:true});ws['!cols']=[{wch:18},{wch:18},{wch:20},{wch:30},{wch:14},{wch:30},{wch:30},{wch:18},{wch:10},{wch:10},{wch:8}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Registros');
-  if(accts.length){const L={pro:'VestibuLab Pro',trial:'En prueba',free:'Prueba terminada'};XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(accts.map(a=>({Correo:a.email,'Alta':ms(a.created)||'',Estado:L[stOf(a)],'Fin de la prueba':ms(a.trialEnd)||'','Pro desde':a.pro?ms(a.proAt):'','Origen':a.proSource||'','Monto':a.amount!=null?a.amount/100:''})),{cellDates:true}),'Cuentas')}
+  if(accts.length){const L={pro:'VestibuLab Pro',trial:'En prueba',free:'Prueba terminada',refund:'Reembolsado (sin Pro)'};XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(accts.map(a=>({Correo:a.email,'Alta':ms(a.created)||'',Estado:L[stOf(a)],'Fin de la prueba':ms(a.trialEnd)||'','Pro desde':a.pro?ms(a.proAt):'','Origen':a.proSource||'','Monto':a.amount!=null?a.amount/100:''})),{cellDates:true}),'Cuentas')}
   if(pays.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(pays.map(p=>({Fecha:ms(p.at)||'',Correo:p.email,Monto:(p.amount||0)/100,Moneda:String(p.currency||'').toUpperCase(),'ID de la operación':p.id})),{cellDates:true}),'Pagos');
   XLSX.writeFile(wb,`VestibuLab-registros-${new Date().toISOString().slice(0,10)}.xlsx`);
 });
