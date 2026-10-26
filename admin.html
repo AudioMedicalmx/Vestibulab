@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Panel de registros · VestibuLab</title>
+<title>Panel de VestibuLab</title>
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <style>
 :root{--bg:#F3F6FB;--panel:#FFFFFF;--ink:#12233D;--muted:#5A6A80;--rule:#D8E0EC;--brand:#0A509C;--gold:#D4951A;--gold2:#F1DD74;--bad:#B3261E;--ok:#2E7D4F;color-scheme:light}
@@ -50,20 +50,35 @@ tr.re td{color:var(--muted)}
 .count{font-size:13px;color:var(--muted);margin:8px 2px}
 footer{margin-top:24px;font-size:12px;color:var(--muted);text-align:center}
 [hidden]{display:none!important}
+.sec{margin:22px 0 10px;color:var(--brand);font-size:18px}.st{font-weight:700}.st.pro{color:var(--gold)}.st.trial{color:var(--ok)}.st.free{color:var(--muted)}
 </style>
 </head>
 <body>
 <main>
-<header><h1>Vestibu<b>Lab</b> · Panel de registros</h1><div class="who" id="who" hidden><span id="whoTxt"></span><button class="btn sm" id="outBtn">Salir</button></div></header>
+<header><h1>Vestibu<b>Lab</b> · Panel de registros, cuentas y pagos</h1><div class="who" id="who" hidden><span id="whoTxt"></span><button class="btn sm" id="outBtn">Salir</button></div></header>
 
 <section class="card login" id="login">
   <h2 style="margin:0">Acceso privado</h2>
-  <p>Este panel muestra los registros de usuarios de VestibuLab. Solo la cuenta autorizada puede ver los datos.</p>
+  <p>Este panel muestra los registros, las cuentas (prueba de 30 días y VestibuLab Pro) y los pagos de VestibuLab. Solo la cuenta autorizada puede ver los datos.</p>
   <button class="btn primary" id="inBtn">Entrar con Google</button>
   <div class="msg" id="loginMsg" role="alert"></div>
 </section>
 
 <section id="app" hidden>
+  <h2 class="sec">Cuentas, prueba de 30 días y VestibuLab Pro</h2>
+  <div class="kpis">
+    <div class="kpi"><span>Cuentas confirmadas</span><b id="aTotal">0</b></div>
+    <div class="kpi"><span>En prueba (activa)</span><b id="aTrial">0</b></div>
+    <div class="kpi"><span>VestibuLab Pro</span><b id="aPro">0</b></div>
+    <div class="kpi"><span>Ingresos web (Stripe)</span><b id="aMxn">$0</b></div>
+  </div>
+  <div class="tools"><input id="qa" type="search" placeholder="Buscar cuenta por correo…" aria-label="Buscar cuenta"><select id="fa" aria-label="Filtrar por estado"><option value="">Todos los estados</option><option value="pro">Pro</option><option value="trial">En prueba</option><option value="free">Prueba terminada</option></select></div>
+  <div class="count" id="acount"></div>
+  <div class="tablewrap"><table><thead><tr><th>Correo</th><th>Nombre (registro)</th><th>Alta de la cuenta</th><th>Estado</th><th>Fin de la prueba</th><th>Pro desde</th><th>Origen del pago</th><th>Monto</th></tr></thead><tbody id="tba"></tbody></table></div>
+  <h3 class="sec">Pagos recibidos (Stripe)</h3>
+  <div class="tablewrap"><table><thead><tr><th>Fecha</th><th>Correo</th><th>Monto</th><th>ID de la operación</th></tr></thead><tbody id="tbp"></tbody></table></div>
+  <p class="count">Las compras hechas en la app de Android se consultan en Google Play Console → Pedidos. Los reembolsos y las facturas se gestionan en Stripe.</p>
+  <h2 class="sec">Registros (cuestionario)</h2>
   <div class="kpis">
     <div class="kpi"><span>Registros</span><b id="kTotal">0</b></div>
     <div class="kpi"><span>Usuarios únicos (correo)</span><b id="kUniq">0</b></div>
@@ -101,7 +116,7 @@ const app=initializeApp({apiKey:'AIzaSyBbpjf7LXUJeTfkIUkR70jrE6Sx3mUA5L0',authDo
 const auth=getAuth(app),db=getFirestore(app);auth.languageCode='es';
 const $=id=>document.getElementById(id);
 const RE='(reingreso)';
-let rows=[];
+let rows=[],accts=[],pays=[];
 
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=d=>d?d.toLocaleString('es-MX',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
@@ -131,9 +146,27 @@ async function load(){
   try{const snap=await getDocs(collection(db,'registros'));
     rows=snap.docs.map(d=>{const x=d.data();return {id:d.id,...x,fecha:x.fecha&&x.fecha.toDate?x.fecha.toDate():null}}).sort((a,b)=>(b.fecha||0)-(a.fecha||0));
     fillFilters();render();
+    try{const [us,ps]=await Promise.all([getDocs(collection(db,'users')),getDocs(collection(db,'payments'))]);
+      accts=us.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.created||0)-(a.created||0));
+      pays=ps.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.at||0)-(a.at||0));renderAccts();
+    }catch(e2){$('acount').textContent=e2.code==='permission-denied'?'Firebase negó la lectura de cuentas: corre de nuevo el workflow «Servidor Firebase» para publicar las reglas nuevas.':'Error al cargar cuentas: '+(e2.code||e2.message)}
   }catch(e){$('count').textContent='';$('appMsg').textContent=e.code==='permission-denied'?'Firebase negó la lectura: falta publicar las reglas nuevas (con permiso de lectura para '+ADMIN+').':'Error al cargar: '+(e.code||e.message)}
 }
 $('reBtn').addEventListener('click',load);
+const money=(c,cur)=>c==null?'—':'$'+(c/100).toLocaleString('es-MX',{minimumFractionDigits:2})+' '+String(cur||'mxn').toUpperCase();
+const ms=t=>t?new Date(t):null;
+function stOf(a){if(a.pro)return 'pro';return (a.trialEnd||0)>Date.now()?'trial':'free'}
+function renderAccts(){
+  const name={};rows.forEach(r=>{const k=(r.correo||'').toLowerCase();if(k&&!name[k]&&r.apellidos!==RE)name[k]=(r.nombre||'')+' '+(r.apellidos||'')});
+  $('aTotal').textContent=accts.length;$('aTrial').textContent=accts.filter(a=>stOf(a)==='trial').length;$('aPro').textContent=accts.filter(a=>a.pro).length;
+  const tot=pays.reduce((s,p)=>s+(p.amount||0),0);$('aMxn').textContent='$'+(tot/100).toLocaleString('es-MX',{minimumFractionDigits:2});
+  const q=$('qa').value.trim().toLowerCase(),fa=$('fa').value,L={pro:'VestibuLab Pro',trial:'En prueba',free:'Prueba terminada'};
+  const f=accts.filter(a=>(!q||(a.email||'').includes(q))&&(!fa||stOf(a)===fa));
+  $('acount').textContent=`${f.length} de ${accts.length} cuentas`;
+  $('tba').innerHTML=f.map(a=>{const st=stOf(a),left=Math.ceil(((a.trialEnd||0)-Date.now())/864e5);return `<tr><td><a href="mailto:${esc(a.email)}">${esc(a.email)}</a></td><td>${esc(name[(a.email||'').toLowerCase()]||'—')}</td><td>${fmt(ms(a.created))}</td><td class="st ${st}">${L[st]}${st==='trial'?' · '+left+' d':''}</td><td>${fmt(ms(a.trialEnd))}</td><td>${a.pro?fmt(ms(a.proAt)):'—'}</td><td>${a.pro?esc(a.proSource==='stripe'?'Stripe (web)':(a.proSource||'—')):'—'}</td><td>${a.pro?money(a.amount,a.currency):'—'}</td></tr>`}).join('');
+  $('tbp').innerHTML=pays.length?pays.map(p=>`<tr><td>${fmt(ms(p.at))}</td><td>${esc(p.email)}</td><td>${money(p.amount,p.currency)}</td><td class="wrap">${esc(p.id)}</td></tr>`).join(''):'<tr><td colspan="4">Sin pagos todavía.</td></tr>';
+}
+['qa','fa'].forEach(id=>$(id).addEventListener(id==='qa'?'input':'change',renderAccts));
 
 function fillFilters(){
   const opt=(id,key,label)=>{const sel=$(id),cur=sel.value,vals=[...new Set(rows.map(r=>r[key]).filter(v=>v&&v!==RE))].sort((a,b)=>a.localeCompare(b,'es'));
@@ -173,6 +206,8 @@ $('xlsBtn').addEventListener('click',()=>{
   const f=filtered(),data=f.map(r=>({Fecha:r.fecha||'',Nombre:r.nombre,Apellidos:r.apellidos,Correo:r.correo,'País':r.pais,'Profesión':r.profesion,Centro:r.centro,'Uso principal':r.uso,'Acepta novedades':r.novedades?'Sí':'No',Plataforma:r.plataforma,'Versión':r.version}));
   const ws=XLSX.utils.json_to_sheet(data,{cellDates:true});ws['!cols']=[{wch:18},{wch:18},{wch:20},{wch:30},{wch:14},{wch:30},{wch:30},{wch:18},{wch:10},{wch:10},{wch:8}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Registros');
+  if(accts.length){const L={pro:'VestibuLab Pro',trial:'En prueba',free:'Prueba terminada'};XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(accts.map(a=>({Correo:a.email,'Alta':ms(a.created)||'',Estado:L[stOf(a)],'Fin de la prueba':ms(a.trialEnd)||'','Pro desde':a.pro?ms(a.proAt):'','Origen':a.proSource||'','Monto':a.amount!=null?a.amount/100:''})),{cellDates:true}),'Cuentas')}
+  if(pays.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(pays.map(p=>({Fecha:ms(p.at)||'',Correo:p.email,Monto:(p.amount||0)/100,Moneda:String(p.currency||'').toUpperCase(),'ID de la operación':p.id})),{cellDates:true}),'Pagos');
   XLSX.writeFile(wb,`VestibuLab-registros-${new Date().toISOString().slice(0,10)}.xlsx`);
 });
 </script>
