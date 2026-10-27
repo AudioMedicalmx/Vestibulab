@@ -50,7 +50,7 @@ tr.re td{color:var(--muted)}
 .count{font-size:13px;color:var(--muted);margin:8px 2px}
 footer{margin-top:24px;font-size:12px;color:var(--muted);text-align:center}
 [hidden]{display:none!important}
-.sec{margin:22px 0 10px;color:var(--brand);font-size:18px}.st{font-weight:700}.st.pro{color:var(--gold)}.st.trial{color:var(--ok)}.st.free{color:var(--muted)}.st.refund{color:var(--bad)}
+.sec{margin:22px 0 10px;color:var(--brand);font-size:18px}.st{font-weight:700}.st.pro{color:var(--gold)}.st.trial{color:var(--ok)}.st.free{color:var(--muted)}.st.refund{color:var(--bad)}.st.expired{color:var(--bad)}
 </style>
 </head>
 <body>
@@ -72,9 +72,9 @@ footer{margin-top:24px;font-size:12px;color:var(--muted);text-align:center}
     <div class="kpi"><span>VestibuLab Pro</span><b id="aPro">0</b></div>
     <div class="kpi"><span>Ingresos web (Stripe)</span><b id="aMxn">$0</b></div>
   </div>
-  <div class="tools"><input id="qa" type="search" placeholder="Buscar cuenta por correo…" aria-label="Buscar cuenta"><select id="fa" aria-label="Filtrar por estado"><option value="">Todos los estados</option><option value="pro">Pro</option><option value="trial">En prueba</option><option value="free">Prueba terminada</option><option value="refund">Reembolsado</option></select></div>
+  <div class="tools"><input id="qa" type="search" placeholder="Buscar cuenta por correo…" aria-label="Buscar cuenta"><select id="fa" aria-label="Filtrar por estado"><option value="">Todos los estados</option><option value="pro">Pro</option><option value="trial">En prueba</option><option value="expired">Pase vencido</option><option value="free">Prueba terminada</option><option value="refund">Reembolsado</option></select></div>
   <div class="count" id="acount"></div>
-  <div class="tablewrap"><table><thead><tr><th>Correo</th><th>Nombre (registro)</th><th>Alta de la cuenta</th><th>Estado</th><th>Fin de la prueba</th><th>Pro desde</th><th>Origen del pago</th><th>Monto</th></tr></thead><tbody id="tba"></tbody></table></div>
+  <div class="tablewrap"><table><thead><tr><th>Correo</th><th>Nombre (registro)</th><th>Alta de la cuenta</th><th>Estado</th><th>Fin de la prueba</th><th>Pro hasta</th><th>Origen del último pago</th><th>Monto</th></tr></thead><tbody id="tba"></tbody></table></div>
   <h3 class="sec">Pagos recibidos (Stripe)</h3>
   <div class="tablewrap"><table><thead><tr><th>Fecha</th><th>Correo</th><th>Monto</th><th>ID de la operación</th></tr></thead><tbody id="tbp"></tbody></table></div>
   <p class="count">Las compras hechas en la app de Android se consultan en Google Play Console → Pedidos. Los reembolsos y las facturas se gestionan en Stripe.</p>
@@ -155,16 +155,22 @@ async function load(){
 $('reBtn').addEventListener('click',load);
 const money=(c,cur)=>c==null?'—':'$'+(c/100).toLocaleString('es-MX',{minimumFractionDigits:2})+' '+String(cur||'mxn').toUpperCase();
 const ms=t=>t?new Date(t):null;
-function stOf(a){if(a.pro)return 'pro';if(a.proSource==='reembolsado')return 'refund';return (a.trialEnd||0)>Date.now()?'trial':'free'}
+// Pro vigente: sin vencimiento (lifetime o cuenta anterior al pase anual) o pase anual con proUntil en el futuro
+const ST_L={pro:'VestibuLab Pro',expired:'Pase vencido',trial:'En prueba',free:'Prueba terminada',refund:'Reembolsado (sin Pro)'};
+const life=a=>!!a.lifetime||(a.pro===true&&!a.proUntil);
+const proOn=a=>life(a)||(a.proUntil||0)>Date.now();
+const until=a=>life(a)?'Sin vencimiento':a.proUntil?fmt(ms(a.proUntil)):'—';
+const ORIG={stripe:'Stripe (web)','stripe-promo':'Código promocional 100 %',play:'Google Play (Android)',manual:'Manual (cortesía)'};
+function stOf(a){if(proOn(a))return 'pro';if(a.proUntil&&a.proSource!=='reembolsado')return 'expired';if(a.proSource==='reembolsado')return 'refund';return (a.trialEnd||0)>Date.now()?'trial':'free'}
 function renderAccts(){
   const name={};rows.forEach(r=>{const k=(r.correo||'').toLowerCase();if(k&&!name[k]&&r.apellidos!==RE)name[k]=(r.nombre||'')+' '+(r.apellidos||'')});
-  $('aTotal').textContent=accts.length;$('aTrial').textContent=accts.filter(a=>stOf(a)==='trial').length;$('aPro').textContent=accts.filter(a=>a.pro).length;
+  $('aTotal').textContent=accts.length;$('aTrial').textContent=accts.filter(a=>stOf(a)==='trial').length;$('aPro').textContent=accts.filter(proOn).length;
   const tot=pays.reduce((s,p)=>s+(p.refunded?0:(p.amount||0)),0);$('aMxn').textContent='$'+(tot/100).toLocaleString('es-MX',{minimumFractionDigits:2});
-  const q=$('qa').value.trim().toLowerCase(),fa=$('fa').value,L={pro:'VestibuLab Pro',trial:'En prueba',free:'Prueba terminada',refund:'Reembolsado (sin Pro)'};
+  const q=$('qa').value.trim().toLowerCase(),fa=$('fa').value,L=ST_L;
   const f=accts.filter(a=>(!q||(a.email||'').includes(q))&&(!fa||stOf(a)===fa));
   $('acount').textContent=`${f.length} de ${accts.length} cuentas`;
-  $('tba').innerHTML=f.map(a=>{const st=stOf(a),left=Math.ceil(((a.trialEnd||0)-Date.now())/864e5);return `<tr><td><a href="mailto:${esc(a.email)}">${esc(a.email)}</a></td><td>${esc(name[(a.email||'').toLowerCase()]||'—')}</td><td>${fmt(ms(a.created))}</td><td class="st ${st}">${L[st]}${st==='trial'?' · '+left+' d':''}</td><td>${fmt(ms(a.trialEnd))}</td><td>${a.pro?fmt(ms(a.proAt)):'—'}</td><td>${a.pro?esc(a.proSource==='stripe'?'Stripe (web)':a.proSource==='stripe-promo'?'Código promocional 100 %':(a.proSource||'—')):'—'}</td><td>${a.pro?money(a.amount,a.currency):'—'}</td></tr>`}).join('');
-  $('tbp').innerHTML=pays.length?pays.map(p=>`<tr><td>${fmt(ms(p.at))}</td><td>${esc(p.email)}</td><td>${money(p.amount,p.currency)}${p.refunded?' · <b style="color:var(--bad)">reembolsado</b>':''}${p.promo?' · código 100 %':''}</td><td class="wrap">${esc(p.id)}</td></tr>`).join(''):'<tr><td colspan="4">Sin pagos todavía.</td></tr>';
+  $('tba').innerHTML=f.map(a=>{const st=stOf(a),left=Math.ceil(((a.trialEnd||0)-Date.now())/864e5);return `<tr><td><a href="mailto:${esc(a.email)}">${esc(a.email)}</a></td><td>${esc(name[(a.email||'').toLowerCase()]||'—')}</td><td>${fmt(ms(a.created))}</td><td class="st ${st}">${L[st]}${st==='trial'?' · '+left+' d':''}</td><td>${fmt(ms(a.trialEnd))}</td><td>${st==='pro'||st==='expired'?until(a):'—'}</td><td>${a.proSource&&a.proSource!=='reembolsado'?esc(ORIG[a.proSource]||a.proSource):'—'}</td><td>${a.amount!=null&&st!=='refund'?money(a.amount,a.currency):'—'}</td></tr>`}).join('');
+  $('tbp').innerHTML=pays.length?pays.map(p=>`<tr><td>${fmt(ms(p.at))}</td><td>${esc(p.email)}</td><td>${p.src==='play'?'Google Play'+(p.verified===false?' · sin verificar':''):money(p.amount,p.currency)}${p.refunded?' · <b style="color:var(--bad)">reembolsado</b>':''}${p.promo?' · código 100 %':''}</td><td class="wrap">${esc(p.id)}</td></tr>`).join(''):'<tr><td colspan="4">Sin pagos todavía.</td></tr>';
 }
 ['qa','fa'].forEach(id=>$(id).addEventListener(id==='qa'?'input':'change',renderAccts));
 
@@ -206,8 +212,8 @@ $('xlsBtn').addEventListener('click',()=>{
   const f=filtered(),data=f.map(r=>({Fecha:r.fecha||'',Nombre:r.nombre,Apellidos:r.apellidos,Correo:r.correo,'País':r.pais,'Profesión':r.profesion,Centro:r.centro,'Uso principal':r.uso,'Acepta novedades':r.novedades?'Sí':'No',Plataforma:r.plataforma,'Versión':r.version}));
   const ws=XLSX.utils.json_to_sheet(data,{cellDates:true});ws['!cols']=[{wch:18},{wch:18},{wch:20},{wch:30},{wch:14},{wch:30},{wch:30},{wch:18},{wch:10},{wch:10},{wch:8}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Registros');
-  if(accts.length){const L={pro:'VestibuLab Pro',trial:'En prueba',free:'Prueba terminada',refund:'Reembolsado (sin Pro)'};XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(accts.map(a=>({Correo:a.email,'Alta':ms(a.created)||'',Estado:L[stOf(a)],'Fin de la prueba':ms(a.trialEnd)||'','Pro desde':a.pro?ms(a.proAt):'','Origen':a.proSource||'','Monto':a.amount!=null?a.amount/100:''})),{cellDates:true}),'Cuentas')}
-  if(pays.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(pays.map(p=>({Fecha:ms(p.at)||'',Correo:p.email,Monto:(p.amount||0)/100,Moneda:String(p.currency||'').toUpperCase(),'ID de la operación':p.id})),{cellDates:true}),'Pagos');
+  if(accts.length){const L=ST_L;XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(accts.map(a=>({Correo:a.email,'Alta':ms(a.created)||'',Estado:L[stOf(a)],'Fin de la prueba':ms(a.trialEnd)||'','Pro hasta':life(a)?'Sin vencimiento':(ms(a.proUntil)||''),'Origen':ORIG[a.proSource]||a.proSource||'','Monto':a.amount!=null?a.amount/100:''})),{cellDates:true}),'Cuentas')}
+  if(pays.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(pays.map(p=>({Fecha:ms(p.at)||'',Correo:p.email,Origen:p.src==='play'?'Google Play':'Stripe',Monto:p.amount!=null?p.amount/100:'',Moneda:String(p.currency||'').toUpperCase(),Reembolsado:p.refunded?'Sí':'','ID de la operación':p.id})),{cellDates:true}),'Pagos');
   XLSX.writeFile(wb,`VestibuLab-registros-${new Date().toISOString().slice(0,10)}.xlsx`);
 });
 </script>
