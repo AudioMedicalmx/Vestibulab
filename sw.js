@@ -1,7 +1,7 @@
 // VestibuLab · © 2026 Dr. Antonio Aldana Vargas · AudioMedical MX. Todos los derechos reservados.
 // Service worker de VestibuLab: guarda la app para usarla sin conexión.
 // La página principal se pide primero a internet (para recibir actualizaciones) y, sin conexión, se usa la copia guardada.
-const CACHE='vestibulab-v103';
+const CACHE='vestibulab-v104';
 const FILES=['./','index.html','three.min.js','OrbitControls.js','jspdf.umd.min.js','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png','icons/icon-192-maskable.png','icons/icon-512-maskable.png','icons/apple-touch-icon.png','icons/favicon-32.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES.map(f=>new Request(f,{cache:'reload'})))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(n=>n!==CACHE).map(n=>caches.delete(n)))).then(()=>self.clients.claim()))});
@@ -10,6 +10,8 @@ self.addEventListener('fetch',e=>{
   const url=new URL(e.request.url);
   const sameApp=url.origin===self.location.origin&&(url.pathname.endsWith('/')||url.pathname.endsWith('index.html'));
   // otras páginas (aviso de privacidad, panel): siempre de internet y sin tocar la copia de la app
+  // el manual (PDF) siempre de internet, sin caché, para que se vea la versión más reciente
+  if(url.pathname.endsWith('.pdf')){e.respondWith(fetch(e.request,{cache:'no-cache'}).catch(()=>caches.match(e.request,{ignoreSearch:true})));return;}
   if(e.request.mode==='navigate'&&!sameApp){e.respondWith(fetch(e.request).catch(()=>caches.match(e.request).then(r=>r||caches.match('index.html'))));return;}
   const isPage=sameApp;
   if(isPage){
